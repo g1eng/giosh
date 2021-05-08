@@ -18,8 +18,11 @@ func parserRun(_ *cli.Context) error {
 	vm.AddFilter(commandLine.Exec)
 
 	if err := vm.Parse(); err != nil {
+		for i := range commandLine.Error {
+			fmt.Println(commandLine.Error[i])
+		}
 		fmt.Println(err)
-		fmt.Println("this is error")
+		fmt.Println("pipe failure")
 		return err
 	}
 	return nil

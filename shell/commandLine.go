@@ -16,7 +16,7 @@ type CommandLine struct {
 	lexicalScope []string
 	expression   [][]string
 	cmd          []*exec.Cmd
-	error        []error
+	Error        []error
 	pipe         []PipeIO
 	tmpIndex     int
 }
@@ -31,14 +31,6 @@ var lineNo = 1
 // GetPsString prints PS shell description
 func GetPsString() string {
 	return os.Getenv("USER") + "@G[" + strconv.Itoa(lineNo) + "]> "
-}
-
-//setExpression sets shell expression with IFS
-//this function is applied to single lexicalScope
-func (c *CommandLine) setExpression(lex string) {
-	expr := regexp.MustCompilePOSIX("[ \\t]").Split(lex, -1)
-	expr = trimExpression(expr) //trim line-head space characters
-	c.expression = append(c.expression, expr)
 }
 
 // trimExpressionHead trims blank string from the head of the expression array
@@ -78,6 +70,22 @@ func trimExpression(expr []string) []string {
 	return expr
 }
 
+// track: error recording function for CommandLine
+// It records error given in argument into CommandLine.Error if the argument is not nil
+func (c *CommandLine) track(e error) {
+	if e != nil {
+		c.Error = append(c.Error, e)
+	}
+}
+
+//setExpression sets shell expression with IFS
+//this function is applied to single lexicalScope
+func (c *CommandLine) setExpression(lex string) {
+	expr := regexp.MustCompilePOSIX("[ \\t]").Split(lex, -1)
+	expr = trimExpression(expr) //trim line-head space characters
+	c.expression = append(c.expression, expr)
+}
+
 // registerCommand set exec.Command object for shell.CommandLine struct.
 func (c *CommandLine) registerCommand(cmdName string, args []string) {
 	var cmd *exec.Cmd
@@ -95,7 +103,7 @@ func (c *CommandLine) registerCommand(cmdName string, args []string) {
 // getCurrentCommand returns latest exec.Command registered in CommandLine.cmd
 func (c *CommandLine) getCurrentCommand() *exec.Cmd {
 	if len(c.cmd) == 0 {
-		c.error = append(c.error, errors.New("c.cmd is zero length"))
+		c.track(errors.New("c.cmd is zero length"))
 		return nil
 	} else {
 		return c.cmd[len(c.cmd)-1]
@@ -115,8 +123,12 @@ func (c *CommandLine) isPipeEnd() bool {
 func (c *CommandLine) isBlankLine() bool {
 	if len(c.lexicalScope) == 0 {
 		log.Println("blank line")
+		return true
+	} else if len(c.expression) != 0 && len(c.expression[0]) == 0 {
+		log.Println("blank line")
+		return true
 	}
-	return len(c.lexicalScope) == 0
+	return false
 }
 
 // Exec is a ParserFunc, which returns the result string of the command execution
@@ -133,13 +145,9 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	for i := range c.lexicalScope {
 		c.tmpIndex = i
 		log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
-		if c.isBlankLine() {
-			return GetPsString(), nil
-		}
-		log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
 		if i == 0 {
 			c.setExpression(c.lexicalScope[i])
-			if len(c.expression[0]) == 0 {
+			if c.isBlankLine() {
 				return GetPsString(), nil
 			} else if len(c.expression[i][0]) == 1 {
 				cmdName = c.expression[i][0]
@@ -157,15 +165,21 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 			//register the first command
 			c.registerCommand(cmdName, args)
 
-			originOutput, err = c.getCurrentCommand().Output()
 			if c.isPipeEnd() {
-				c.error = append(c.error, err)
+				originOutput, err = c.getCurrentCommand().Output()
+				c.track(err)
 				c.WriteTo(os.Stdout, originOutput)
 				return GetPsString(), err
+			} else {
+				c.pipe[i].stdout, err = c.getCurrentCommand().StdoutPipe()
+				c.track(err)
+				if err != nil {
+					return GetPsString(), err
+				}
 			}
 		} else {
 			//stdout1, err := c.getCurrentCommand().StdoutPipe()
-			c.error = append(c.error, err)
+			c.track(err)
 			c.setExpression(c.lexicalScope[i])
 			tmpIndex := len(c.expression) - 1
 			cmdName = c.expression[tmpIndex][0]
@@ -199,12 +213,12 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 
 func (c *CommandLine) WriteTo(dest io.WriteCloser, output []byte) {
 	_, err := io.WriteString(dest, string(output))
-	c.error = append(c.error, err)
+	c.track(err)
 }
 
 func (c *CommandLine) Flush() {
 	c.cmd = []*exec.Cmd{}
 	c.expression = [][]string{}
-	c.error = []error{}
+	c.Error = []error{}
 	c.pipe = []PipeIO{}
 }
