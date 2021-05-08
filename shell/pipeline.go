@@ -16,7 +16,7 @@ type PipeIO struct {
 }
 
 //PocPipe is a simple poc for line conversion with tr command.
-//All lowercase characters are converted to uppercase within a pipeline
+//All lowercase characters from stdin are converted to uppercase within a pipeline
 func (p *PipeIO) PocPipe(_ *gioParser.GioParser, s string) (string, error) {
 	cmd := exec.Command("printf", s)
 	cmd2 := exec.Command("tr", "a-z", "A-Z")
@@ -31,7 +31,7 @@ func (p *PipeIO) PocPipe(_ *gioParser.GioParser, s string) (string, error) {
 	err = stdin2.Close()
 
 	b2, _ := cmd2.Output()
-	_, err = io.WriteString(os.Stdout, string(b2))
+	_, err = io.WriteString(os.Stdout, string(b2) + " ")
 	if err != nil {
 		return "", err
 	}
