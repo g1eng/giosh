@@ -9,14 +9,13 @@ import (
 	"os"
 )
 
-var vm = gioParser.NewParser()
-
 func parserRun(_ *cli.Context) error {
+	vm := gioParser.NewParser()
 	fmt.Printf(shell.GetPsString())
 	vm.ReadLine()
 
 	pipe := shell.PipeIO{}
-	vm.AddFilter(pipe.PocPipeParser)
+	vm.AddFilter(pipe.Exec)
 
 	if err := vm.Parse(); err != nil {
 		fmt.Println(err)
