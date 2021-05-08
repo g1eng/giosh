@@ -17,6 +17,7 @@ type CommandLine struct {
 	expression [][]string
 	error      []error
 	pipe       []PipeIO
+	tmpIndex   int
 }
 
 type PipeIO struct {
@@ -105,43 +106,45 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 		cmdName      string
 		args         []string
 		lexicalScope []string
+		originOutput []byte
+		err          error
 	)
 	c.Flush()
 	lexicalScope = strings.Split(s, "|")
 	if len(lexicalScope) == 0 {
 		return GetPsString(), nil
-	} else {
-		c.setExpression(lexicalScope[0])
-	}
-	if len(c.expression[0]) == 0 {
-		return GetPsString(), nil
-	} else if len(c.expression[0][0]) == 1 {
-		cmdName = c.expression[0][0]
-	} else {
-		cmdName = c.expression[0][0]
-		args = c.expression[0][1:]
-		args = trimExpression(args) //trim line-head space characters
-		for i := range c.expression[0] {
-			log.Printf("expression[0][%d]: %s", i, c.expression[0][i])
-		}
-		for i := range args {
-			log.Printf("args[%d]: %s", i, args[i])
-		}
-	}
-
-	c.registerCommand(cmdName, args)
-
-	originOutput, err := c.getCurrentCommand().Output()
-	c.error = append(c.error, err)
-
-	if len(lexicalScope) == 1 {
-		c.WriteTo(os.Stdout, originOutput)
-		return GetPsString(), err
 	}
 
 	for i := range lexicalScope {
+		c.tmpIndex = i
 		log.Printf("lexicalScope[%d]: %v", i, lexicalScope[i])
-		if i != 0 {
+		if i == 0 {
+			c.setExpression(lexicalScope[i])
+			if len(c.expression[0]) == 0 {
+				return GetPsString(), nil
+			} else if len(c.expression[i][0]) == 1 {
+				cmdName = c.expression[i][0]
+			} else {
+				cmdName = c.expression[i][0]
+				args = c.expression[i][1:]
+				args = trimExpression(args) //trim line-head space characters
+				for j := range c.expression[i] {
+					log.Printf("expression[%d][%d]: %s", j, j, c.expression[i][j])
+				}
+				for j := range args {
+					log.Printf("args[%d]: %s", j, args[j])
+				}
+			}
+			//register the first command
+			c.registerCommand(cmdName, args)
+			originOutput, err = c.getCurrentCommand().Output()
+			c.error = append(c.error, err)
+
+			if len(lexicalScope) == 1 {
+				c.WriteTo(os.Stdout, originOutput)
+				return GetPsString(), err
+			}
+		} else {
 			c.setExpression(lexicalScope[i])
 			tmpIndex := len(c.expression) - 1
 			cmdName = c.expression[tmpIndex][0]
