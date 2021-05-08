@@ -14,7 +14,7 @@ func parserRun(_ *cli.Context) error {
 	fmt.Printf(shell.GetPsString())
 	vm.ReadLine()
 
-	commandLine := shell.Line{}
+	commandLine := shell.CommandLine{}
 	vm.AddFilter(commandLine.Exec)
 
 	if err := vm.Parse(); err != nil {

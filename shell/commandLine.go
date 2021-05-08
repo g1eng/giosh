@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"errors"
 	gioParser "github.com/g1eng/giop/core"
 	"io"
 	"log"
@@ -11,7 +12,7 @@ import (
 	"strings"
 )
 
-type Line struct {
+type CommandLine struct {
 	cmd        []*exec.Cmd
 	expression [][]string
 	error      []error
@@ -32,7 +33,7 @@ func GetPsString() string {
 
 //setExpression sets shell expression with IFS
 //this function is applied to single lexicalScope
-func (c *Line) setExpression(lex string) {
+func (c *CommandLine) setExpression(lex string) {
 	expr := regexp.MustCompilePOSIX("[ \\t]").Split(lex, -1)
 	expr = trimExpression(expr) //trim line-head space characters
 	c.expression = append(c.expression, expr)
@@ -63,6 +64,9 @@ func trimExpressionTail(expr []string) []string {
 	}
 	return expr
 }
+
+// trimExpression is the wrapper for trimExpressionTail and trimExpressionHead.
+// It trims blank string "" from head and end of the given expression
 func trimExpression(expr []string) []string {
 	if len(expr) == 0 {
 		return []string{""}
@@ -72,7 +76,8 @@ func trimExpression(expr []string) []string {
 	return expr
 }
 
-func (c *Line) execCommand(cmdName string, args []string) {
+// registerCommand set exec.Command object for shell.CommandLine struct.
+func (c *CommandLine) registerCommand(cmdName string, args []string) {
 	var cmd *exec.Cmd
 	if args == nil || args[0] == "" {
 		cmd = exec.Command(cmdName)
@@ -85,8 +90,17 @@ func (c *Line) execCommand(cmdName string, args []string) {
 	c.pipe = append(c.pipe, PipeIO{})
 }
 
+func (c *CommandLine) getCurrentCommand() *exec.Cmd {
+	if len(c.cmd) == 0 {
+		c.error = append(c.error, errors.New("c.cmd is zero length"))
+		return nil
+	} else {
+		return c.cmd[len(c.cmd)-1]
+	}
+}
+
 // Exec is a ParserFunc, which returns the result string of the command execution
-func (c *Line) Exec(_ *gioParser.GioParser, s string) (string, error) {
+func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	var (
 		cmdName      string
 		args         []string
@@ -94,7 +108,9 @@ func (c *Line) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	)
 	c.Flush()
 	lexicalScope = strings.Split(s, "|")
-	if len(lexicalScope) != 0 {
+	if len(lexicalScope) == 0 {
+		return GetPsString(), nil
+	} else {
 		c.setExpression(lexicalScope[0])
 	}
 	if len(c.expression[0]) == 0 {
@@ -113,17 +129,16 @@ func (c *Line) Exec(_ *gioParser.GioParser, s string) (string, error) {
 		}
 	}
 
-	c.execCommand(cmdName, args)
+	c.registerCommand(cmdName, args)
 
-	originOutput, err := c.cmd[0].Output()
+	originOutput, err := c.getCurrentCommand().Output()
 	c.error = append(c.error, err)
 
-	if len(lexicalScope) == 0 {
-		return GetPsString(), nil
-	} else if len(lexicalScope) == 1 {
+	if len(lexicalScope) == 1 {
 		c.WriteTo(os.Stdout, originOutput)
 		return GetPsString(), err
 	}
+
 	for i := range lexicalScope {
 		log.Printf("lexicalScope[%d]: %v", i, lexicalScope[i])
 		if i != 0 {
@@ -137,8 +152,8 @@ func (c *Line) Exec(_ *gioParser.GioParser, s string) (string, error) {
 				log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
 			}
 
-			c.execCommand(cmdName, args)
-			cmd2 := exec.Command(cmdName, args...)
+			c.registerCommand(cmdName, args)
+			cmd2 := c.getCurrentCommand()
 
 			stdin2, _ := cmd2.StdinPipe()
 			c.WriteTo(stdin2, originOutput)
@@ -158,12 +173,12 @@ func (c *Line) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	return GetPsString(), nil
 }
 
-func (c *Line) WriteTo(dest io.WriteCloser, output []byte) {
+func (c *CommandLine) WriteTo(dest io.WriteCloser, output []byte) {
 	_, err := io.WriteString(dest, string(output))
 	c.error = append(c.error, err)
 }
 
-func (c *Line) Flush() {
+func (c *CommandLine) Flush() {
 	c.cmd = []*exec.Cmd{}
 	c.expression = [][]string{}
 	c.error = []error{}
