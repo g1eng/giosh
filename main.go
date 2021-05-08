@@ -5,19 +5,20 @@ import (
 	gioParser "github.com/g1eng/giop/core"
 	"github.com/g1eng/giosh/shell"
 	"github.com/urfave/cli"
+	"log"
 	"os"
 )
 
-var giosh = gioParser.Init()
+var vm = gioParser.NewParser()
 
-func parserRun (c *cli.Context) error {
-	giosh.ReadLine()
-	shell.PrintPsString()
+func parserRun(_ *cli.Context) error {
+	fmt.Printf(shell.GetPsString())
+	vm.ReadLine()
 
 	pipe := shell.PipeIO{}
-	giosh.NewParser(pipe.PocPipe)
+	vm.AddFilter(pipe.PocPipe)
 
-	if err := giosh.Parse(); err != nil {
+	if err := vm.Parse(); err != nil {
 		fmt.Println(err)
 		fmt.Println("this is error")
 		return err
@@ -26,9 +27,12 @@ func parserRun (c *cli.Context) error {
 }
 
 func main() {
-	(&cli.App{
-		Name: "giosh",
-		Usage: "giosh: a shell written in go and gioparser",
+	err := (&cli.App{
+		Name:   "giosh",
+		Usage:  "giosh: a shell written in go and gioparser",
 		Action: parserRun,
 	}).Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

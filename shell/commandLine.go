@@ -11,22 +11,15 @@ import (
 	"strconv"
 )
 
-var line = 1
-
-// validate validates the syntax of given expression.
-// It aims to be a syntax checker for giosh.
-// FIXME [this is stub]
-func validate(cmdLine string) error {
-	return nil
-}
+var lineNo = 1
 
 // PipelineExec is Exec alternative, which parses pipe (|) in a command line
 func PipelineExec(g *gioParser.GioParser, cmdLine string) (string, error) {
 	var (
-		pipe PipeIO
+		pipe   PipeIO
 		stdout io.ReadCloser
-		stdin io.WriteCloser
-		err error
+		stdin  io.WriteCloser
+		err    error
 	)
 
 	//set "|" as the expression splitter.
@@ -59,7 +52,6 @@ func PipelineExec(g *gioParser.GioParser, cmdLine string) (string, error) {
 		log.Println(pipe.result)
 		cmdName, args := setExpression(expression)
 
-
 		cmd := exec.Command(cmdName, args...)
 		pipe.command = append(pipe.command, cmd)
 		stdin, err = cmd.StdinPipe()
@@ -69,9 +61,9 @@ func PipelineExec(g *gioParser.GioParser, cmdLine string) (string, error) {
 		// if there are at least one pipe,
 		// then write stdout into stdin pipe of the new expression
 
-		go func(){
+		go func() {
 			if i > 0 {
-				if _, err = io.WriteString(pipe.stdin[i], string(pipe.result[i-1])); err != nil{
+				if _, err = io.WriteString(pipe.stdin[i], string(pipe.result[i-1])); err != nil {
 					log.Fatal(err)
 				}
 			}
@@ -102,12 +94,9 @@ func PipelineExec(g *gioParser.GioParser, cmdLine string) (string, error) {
 	}
 }
 
-func PrintPsString() error {
-	_, err := fmt.Printf( getPsString() )
-	return err
-}
-func getPsString() string {
-	return os.Getenv("USER") + "@G[" + strconv.Itoa(line) + "]> "
+// GetPsString prints PS shell description
+func GetPsString() string {
+	return os.Getenv("USER") + "@G[" + strconv.Itoa(lineNo) + "]> "
 }
 
 func setExpression(expression []string) (string, []string) {
@@ -130,14 +119,14 @@ func Exec(g *gioParser.GioParser, cmdLine string) (string, error) {
 
 	if cmdName == "" {
 		// for single newline
-		return getPsString(), nil
+		return GetPsString(), nil
 	} else {
 		// for command execution
 		b, err := exec.Command(cmdName, args...).Output()
-		line = line + 1
+		lineNo++
 		if err != nil {
 			fmt.Printf("giosh %s\n", err)
 		}
-		return string(b) + getPsString(), nil
+		return string(b) + GetPsString(), nil
 	}
 }

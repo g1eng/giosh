@@ -9,15 +9,17 @@ import (
 
 type PipeIO struct {
 	command []*exec.Cmd
-	stdin []io.WriteCloser
-	stdout []io.ReadCloser
-	result [][]byte
-	error []error
+	stdin   []io.WriteCloser
+	stdout  []io.ReadCloser
+	result  [][]byte
+	error   []error
 }
 
-func (p *PipeIO) PocPipe(g *gioParser.GioParser, s string) (string, error) {
-	cmd := exec.Command("printf","\"ok\"")
-	cmd2 := exec.Command("tr","a-z", "A-Z")
+//PocPipe is a simple poc for line conversion with tr command.
+//All lowercase characters are converted to uppercase within a pipeline
+func (p *PipeIO) PocPipe(_ *gioParser.GioParser, s string) (string, error) {
+	cmd := exec.Command("printf", s)
+	cmd2 := exec.Command("tr", "a-z", "A-Z")
 	stdin2, _ := cmd2.StdinPipe()
 	//stdout, _ := cmd2.StdoutPipe()
 	//a := "abcJe-"
@@ -35,21 +37,3 @@ func (p *PipeIO) PocPipe(g *gioParser.GioParser, s string) (string, error) {
 	}
 	return "", nil
 }
-//
-//func (p *PipeIO) pipeLsCat(s string) error {
-//	go func(){
-//		cmd := exec.Command("ls")
-//		stdout, err := cmd.StdoutPipe()
-//		if err != nil {
-//			append(p.error, err)
-//		}
-//		if os.Stdin !=nil {
-//
-//		} else {
-//			io.ReadSt(stdout)
-//		}
-//		defer io.WriteString(stdout)
-//	}()
-//	_, _ = exec.Command("cat").StdinPipe()
-//	return nil
-//}
