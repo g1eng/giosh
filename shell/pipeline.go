@@ -53,9 +53,9 @@ func (p *PipeIO) setExpression(lex string) {
 	p.expression = append(p.expression, expr)
 }
 
-func (p *PipeIO) WriteTo(dest io.WriteCloser, output []byte) error {
+func (p *PipeIO) WriteTo(dest io.WriteCloser, output []byte) {
 	_, err := io.WriteString(dest, string(output))
-	return err
+	p.error = append(p.error, err)
 }
 
 func (p *PipeIO) Flush() {

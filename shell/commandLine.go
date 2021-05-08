@@ -66,8 +66,7 @@ func (p *PipeIO) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	if len(lexicalScope) == 0 {
 		return GetPsString(), nil
 	} else if len(lexicalScope) == 1 {
-		err = p.WriteTo(os.Stdout, originOutput)
-		p.error = append(p.error, err)
+		p.WriteTo(os.Stdout, originOutput)
 		return GetPsString(), err
 	}
 	for i := range lexicalScope {
@@ -85,17 +84,13 @@ func (p *PipeIO) Exec(_ *gioParser.GioParser, s string) (string, error) {
 
 			p.execCommand(cmdName, args)
 			cmd2 := exec.Command(cmdName, args...)
-			p.cmd = append(p.cmd, cmd2)
 
 			stdin2, _ := cmd2.StdinPipe()
-			p.stdin = append(p.stdin, stdin2)
-			err = p.WriteTo(stdin2, originOutput)
-			p.error = append(p.error, err)
+			p.WriteTo(stdin2, originOutput)
 			err = stdin2.Close()
 
 			processOutput, _ := cmd2.Output()
-			err = p.WriteTo(os.Stdout, processOutput)
-			p.error = append(p.error, err)
+			p.WriteTo(os.Stdout, processOutput)
 		}
 	}
 	for i := range p.error {
@@ -103,6 +98,7 @@ func (p *PipeIO) Exec(_ *gioParser.GioParser, s string) (string, error) {
 			return GetPsString(), err
 		}
 	}
-	_ = p.WriteTo(os.Stdout, []byte(GetPsString()))
+	p.WriteTo(os.Stdout, []byte(GetPsString()))
+
 	return GetPsString(), nil
 }
