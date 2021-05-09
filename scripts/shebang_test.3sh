@@ -1,0 +1,3 @@
+df | grep dev | sed s/dev/でぶ/
+ls -l | grep main | sed s/mai/もわ/g
+lsblk | tr a-z A-Z | tr 0123 零壱弐参

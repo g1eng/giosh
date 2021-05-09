@@ -23,6 +23,7 @@ type CommandLine struct {
 	tmpIndex     int
 	error        []error
 	debug        bool
+	input        string
 }
 
 type PipeIO struct {
@@ -252,22 +253,32 @@ func (c *CommandLine) Parse(s string) error {
 	return c.TerminateLine()
 }
 
+func (c *CommandLine) SetInput(input string) error {
+	c.input = input
+	return nil
+}
+func (c *CommandLine) GetInput() string {
+	return c.input
+}
+
 func (c *CommandLine) Exec() error {
+	var s *bufio.Scanner
 	c.Initialize()
+	fmt.Printf(GetPsString())
 	c.stream.buf.writer = append(c.stream.buf.writer, bufio.NewWriter(os.Stdout))
-	s := bufio.NewScanner(os.Stdin)
+	if c.input == "" {
+		s = bufio.NewScanner(os.Stdin)
+	} else {
+		s = bufio.NewScanner(bytes.NewBufferString(c.input))
+	}
 	for s.Scan() {
 		err := c.Parse(s.Text())
 		if err != nil {
 			fmt.Print(err)
 		}
 	}
-	return nil
-}
 
-func (c *CommandLine) WriteTo(dest io.WriteCloser, output []byte) {
-	_, err := io.WriteString(dest, string(output))
-	c.track(err)
+	return nil
 }
 
 func (c *CommandLine) TerminateLine() (err error) {

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/g1eng/giosh/shell"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"log"
 	"os"
 )
 
-func parserRun(cli *cli.Context) error {
-	fmt.Printf(shell.GetPsString())
+func parserRun(cli *cli.Context) (err error) {
 	commandLine := shell.CommandLine{}
 
 	if cli.Bool("debug") {
@@ -17,7 +18,24 @@ func parserRun(cli *cli.Context) error {
 		commandLine.SetDebug(false)
 	}
 
-	return commandLine.Exec()
+	if cli.NArg() > 0 {
+		var b []byte
+		fmt.Println(cli.Args().Get(0))
+		if b, err = ioutil.ReadFile(cli.Args().Get(0)); err != nil {
+			fmt.Print(err)
+			return err
+		} else if err = commandLine.SetInput(string(b)); err != nil {
+			fmt.Print(err)
+			return err
+		} else {
+			log.Printf("b: string: %s : hex : %x", b, b)
+			log.Printf("c.input: %s", commandLine.GetInput())
+			return commandLine.Exec()
+		}
+	} else {
+		_ = commandLine.SetInput("")
+		return commandLine.Exec()
+	}
 }
 
 func main() {
