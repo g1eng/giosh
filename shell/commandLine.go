@@ -2,9 +2,10 @@ package shell
 
 import (
 	"errors"
+	"fmt"
 	gioParser "github.com/g1eng/giop/core"
 	"io"
-	//"log"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -16,9 +17,10 @@ type CommandLine struct {
 	lexicalScope []string
 	expression   [][]string
 	cmd          []*exec.Cmd
-	Error        []error
 	pipe         []PipeIO
 	tmpIndex     int
+	error        []error
+	debug        bool
 }
 
 type PipeIO struct {
@@ -37,9 +39,6 @@ func GetPsString() string {
 //It returns processed expression
 func trimExpressionHead(expr []string) []string {
 	if expr[0] == "" {
-		//for i := range expr[0] {
-		//	log.Printf("expr[%d]: %x", i, []byte(expr[i]))
-		//}
 		expr = expr[1:]
 		expr = trimExpression(expr)
 	}
@@ -70,12 +69,30 @@ func trimExpression(expr []string) []string {
 	return expr
 }
 
-// track: error recording function for CommandLine
-// It records error given in argument into CommandLine.Error if the argument is not nil
+// track is internal error recording function for CommandLine.
+// It records error given in argument into CommandLine.error if the argument is not nil
 func (c *CommandLine) track(e error) {
 	if e != nil {
-		c.Error = append(c.Error, e)
+		c.error = append(c.error, e)
 	}
+}
+
+// DumpErrors is error reporting function for CommandLine.
+// It scans any error object in CommandLine.error array and returns bool if it contains not a nil value
+func (c *CommandLine) DumpErrors() bool {
+	isNotNilArray := false
+	for i := range c.error {
+		if c.error[i] != nil {
+			isNotNilArray = true
+			fmt.Println(c.error[i])
+		}
+	}
+	return isNotNilArray
+}
+
+//SetDebug is write-only setter method for CommandLine.debug flag.
+func (c *CommandLine) SetDebug(flag bool) {
+	c.debug = flag
 }
 
 //setExpression sets shell expression with IFS
@@ -123,8 +140,8 @@ func (c *CommandLine) getCurrentCommand() *exec.Cmd {
 
 // isPipeEnd detects whether the pipe is end or not and returns bool value
 func (c *CommandLine) isPipeEnd() bool {
-	if c.tmpIndex == len(c.lexicalScope)-1 {
-		//log.Println("pipe end")
+	if c.tmpIndex == len(c.lexicalScope)-1 && c.debug {
+		log.Println("pipe end")
 	}
 	return c.tmpIndex == len(c.lexicalScope)-1
 }
@@ -133,10 +150,14 @@ func (c *CommandLine) isPipeEnd() bool {
 // and returns bool value
 func (c *CommandLine) isBlankLine() bool {
 	if len(c.lexicalScope) == 0 {
-		//log.Println("blank line")
+		if c.debug {
+			log.Println("blank line")
+		}
 		return true
 	} else if len(c.expression) != 0 && len(c.expression[0]) == 0 {
-		//log.Println("blank line")
+		if c.debug {
+			log.Println("blank line")
+		}
 		return true
 	}
 	return false
@@ -155,7 +176,9 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 
 	for i := range c.lexicalScope {
 		c.tmpIndex = i
-		//log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
+		if c.debug {
+			log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
+		}
 
 		c.setExpression(c.lexicalScope[i])
 		if i == 0 && c.isBlankLine() {
@@ -174,12 +197,14 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 		c.registerCommand(cmdName, args)
 
 		// debugger
-		//log.Printf("expression[%d]: %v", i, c.expression[i])
-		//for j := range c.expression[i] {
-		//	log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
-		//}
-		//log.Printf("cmdName %d: %s", i, cmdName)
-		//log.Printf("args %d: %v", i, args)
+		if c.debug {
+			log.Printf("expression[%d]: %v", i, c.expression[i])
+			for j := range c.expression[i] {
+				log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
+			}
+			log.Printf("cmdName %d: %s", i, cmdName)
+			log.Printf("args %d: %v", i, args)
+		}
 
 		c.track(c.cmd[i].Start())
 	}
@@ -222,7 +247,7 @@ func (c *CommandLine) Flush() {
 	c.lexicalScope = []string{}
 	c.cmd = []*exec.Cmd{}
 	c.expression = [][]string{}
-	c.Error = []error{}
+	c.error = []error{}
 	c.pipe = []PipeIO{}
 	c.tmpIndex = 0
 }
