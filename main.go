@@ -2,33 +2,22 @@ package main
 
 import (
 	"fmt"
-	gioParser "github.com/g1eng/giop/core"
 	"github.com/g1eng/giosh/shell"
 	"github.com/urfave/cli"
 	"os"
 )
 
-func parserRun(c *cli.Context) error {
-	vm := gioParser.NewParser()
+func parserRun(cli *cli.Context) error {
 	fmt.Printf(shell.GetPsString())
-	vm.ReadLine()
-
 	commandLine := shell.CommandLine{}
-	if c.Bool("debug") {
+
+	if cli.Bool("debug") {
 		commandLine.SetDebug(true)
 	} else {
 		commandLine.SetDebug(false)
 	}
-	vm.AddFilter(commandLine.Exec)
 
-	if err := vm.Parse(); err != nil {
-		if commandLine.DumpErrors() {
-			fmt.Println(err)
-			fmt.Println("pipe failure")
-		}
-		return err
-	}
-	return nil
+	return commandLine.Exec()
 }
 
 func main() {

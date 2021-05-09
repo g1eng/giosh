@@ -1,9 +1,10 @@
 package shell
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
-	gioParser "github.com/g1eng/giop/core"
 	"io"
 	"log"
 	"os"
@@ -18,6 +19,7 @@ type CommandLine struct {
 	expression   [][]string
 	cmd          []*exec.Cmd
 	pipe         []PipeIO
+	stream       StreamIO
 	tmpIndex     int
 	error        []error
 	debug        bool
@@ -79,11 +81,11 @@ func (c *CommandLine) track(e error) {
 
 // DumpErrors is error reporting function for CommandLine.
 // It scans any error object in CommandLine.error array and returns bool if it contains not a nil value
-func (c *CommandLine) DumpErrors() bool {
-	isNotNilArray := false
+func (c *CommandLine) DumpErrors() (isNotNilArray error) {
+	isNotNilArray = nil
 	for i := range c.error {
 		if c.error[i] != nil {
-			isNotNilArray = true
+			isNotNilArray = errors.New("pipe failure")
 			fmt.Println(c.error[i])
 		}
 	}
@@ -108,6 +110,9 @@ func (c *CommandLine) registerCommand(cmdName string, args []string) {
 	var (
 		tmpIndex int
 		cmd      *exec.Cmd
+		stdin    io.WriteCloser
+		stdout   io.ReadCloser
+		err      error
 	)
 	tmpIndex = len(c.cmd)
 	if args == nil || args[0] == "" {
@@ -118,9 +123,9 @@ func (c *CommandLine) registerCommand(cmdName string, args []string) {
 		c.cmd = append(c.cmd, cmd)
 	}
 	lineNo++
-	stdin, err := c.cmd[tmpIndex].StdinPipe()
+	stdin, err = c.cmd[tmpIndex].StdinPipe()
 	c.track(err)
-	stdout, err := c.cmd[tmpIndex].StdoutPipe()
+	stdout, err = c.cmd[tmpIndex].StdoutPipe()
 	c.track(err)
 	c.pipe = append(c.pipe, PipeIO{
 		stdin:  stdin,
@@ -135,6 +140,15 @@ func (c *CommandLine) getCurrentCommand() *exec.Cmd {
 		return nil
 	} else {
 		return c.cmd[len(c.cmd)-1]
+	}
+}
+
+func (c *CommandLine) getCurrentStdout() io.ReadCloser {
+	if len(c.pipe) == 0 {
+		c.track(errors.New("c.pipe is zero length"))
+		return nil
+	} else {
+		return c.pipe[len(c.pipe)-1].stdout
 	}
 }
 
@@ -163,8 +177,8 @@ func (c *CommandLine) isBlankLine() bool {
 	return false
 }
 
-// Exec is a ParserFunc, which returns the result string of the command execution
-func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
+// Parse parses giosh command line and return output string
+func (c *CommandLine) Parse(s string) error {
 	var (
 		cmdName  string
 		args     []string
@@ -182,7 +196,7 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 
 		c.setExpression(c.lexicalScope[i])
 		if i == 0 && c.isBlankLine() {
-			return GetPsString(), nil
+			return c.TerminateLine()
 		}
 
 		// command with no arg
@@ -211,7 +225,7 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 
 	for i := range c.lexicalScope {
 		if i == 0 {
-			copySrc = os.Stdin
+			copySrc = bytes.NewBufferString(s)
 		} else {
 			copySrc = c.pipe[i-1].stdout
 		}
@@ -230,17 +244,48 @@ func (c *CommandLine) Exec(_ *gioParser.GioParser, s string) (string, error) {
 	for i := range c.cmd {
 		c.track(c.cmd[i].Wait())
 	}
-	defer c.track(c.pipe[0].stdin.Close())
-	_, err := c.pipe[0].stdin.Write([]byte("\n"))
-	c.track(err)
-	c.track(c.pipe[len(c.pipe)-1].stdout.Close())
 
-	return GetPsString(), nil
+	return c.TerminateLine()
+}
+
+func (c *CommandLine) Exec() error {
+	c.Initialize()
+	c.stream.buf.writer = append(c.stream.buf.writer, bufio.NewWriter(os.Stdout))
+	for true {
+		s := bufio.NewScanner(os.Stdin)
+		s.Scan()
+		err := c.Parse(s.Text())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *CommandLine) WriteTo(dest io.WriteCloser, output []byte) {
 	_, err := io.WriteString(dest, string(output))
 	c.track(err)
+}
+
+func (c *CommandLine) TerminateLine() error {
+	// for bufio.Writer, write PS string
+	for i := range c.stream.buf.writer {
+		if _, err := c.stream.buf.writer[i].Write([]byte(GetPsString())); err != nil {
+			return err
+		} else {
+			c.track(c.stream.buf.writer[i].Flush())
+		}
+	}
+	return c.DumpErrors()
+}
+
+func (c *CommandLine) Initialize() {
+	c.stream = StreamIO{
+		buf:  SystemIO{},
+		file: []*os.File{},
+		rest: Rest{},
+	}
+	c.Flush()
 }
 
 func (c *CommandLine) Flush() {
