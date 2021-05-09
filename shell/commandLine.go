@@ -32,7 +32,7 @@ type PipeIO struct {
 
 var lineNo = 1
 
-// GetPsString prints PS shell description
+// GetPsString returns PS shell description for bufio.Writer
 func GetPsString() string {
 	return os.Getenv("USER") + "@G[" + strconv.Itoa(lineNo) + "]> "
 }
@@ -85,8 +85,12 @@ func (c *CommandLine) DumpErrors() (isNotNilArray error) {
 	isNotNilArray = nil
 	for i := range c.error {
 		if c.error[i] != nil {
-			isNotNilArray = errors.New("pipe failure")
-			fmt.Println(c.error[i])
+			if isNotNilArray == nil {
+				isNotNilArray = c.error[i]
+			}
+			if c.debug {
+				fmt.Println(c.error[i])
+			}
 		}
 	}
 	return isNotNilArray
@@ -185,7 +189,7 @@ func (c *CommandLine) Parse(s string) error {
 		copySrc  io.Reader
 		copyDest io.Writer
 	)
-	c.Flush()
+	c.Refresh()
 	c.lexicalScope = strings.Split(s, "|")
 
 	for i := range c.lexicalScope {
@@ -251,12 +255,11 @@ func (c *CommandLine) Parse(s string) error {
 func (c *CommandLine) Exec() error {
 	c.Initialize()
 	c.stream.buf.writer = append(c.stream.buf.writer, bufio.NewWriter(os.Stdout))
-	for true {
-		s := bufio.NewScanner(os.Stdin)
-		s.Scan()
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
 		err := c.Parse(s.Text())
 		if err != nil {
-			return err
+			fmt.Print(err)
 		}
 	}
 	return nil
@@ -267,16 +270,20 @@ func (c *CommandLine) WriteTo(dest io.WriteCloser, output []byte) {
 	c.track(err)
 }
 
-func (c *CommandLine) TerminateLine() error {
+func (c *CommandLine) TerminateLine() (err error) {
 	// for bufio.Writer, write PS string
+	err = c.DumpErrors()
+	if err != nil {
+		fmt.Println(err)
+	}
 	for i := range c.stream.buf.writer {
-		if _, err := c.stream.buf.writer[i].Write([]byte(GetPsString())); err != nil {
+		if _, err = c.stream.buf.writer[i].Write([]byte(GetPsString())); err != nil {
 			return err
-		} else {
-			c.track(c.stream.buf.writer[i].Flush())
+		} else if err = c.stream.buf.writer[i].Flush(); err != nil {
+			return err
 		}
 	}
-	return c.DumpErrors()
+	return nil
 }
 
 func (c *CommandLine) Initialize() {
@@ -285,10 +292,10 @@ func (c *CommandLine) Initialize() {
 		file: []*os.File{},
 		rest: Rest{},
 	}
-	c.Flush()
+	c.Refresh()
 }
 
-func (c *CommandLine) Flush() {
+func (c *CommandLine) Refresh() {
 	c.lexicalScope = []string{}
 	c.cmd = []*exec.Cmd{}
 	c.expression = [][]string{}
