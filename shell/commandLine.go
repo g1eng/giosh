@@ -253,14 +253,23 @@ func (c *CommandLine) Parse(s string) error {
 	return c.TerminateLine()
 }
 
+// SetInput sets raw input string for c.input.
+// (for reading scripts from arguments)
 func (c *CommandLine) SetInput(input string) error {
 	c.input = input
 	return nil
 }
+
+// GetInput get raw input string from c.input.
+// (just for temporary caching for file reading)
 func (c *CommandLine) GetInput() string {
 	return c.input
 }
 
+// Exec is the entry point for giosh shell interface.
+//
+// If you simply run it without any additional reader/writer sets,
+// the vm starts with default I/O interface (bufio.Scanner and os.Stdout).
 func (c *CommandLine) Exec() error {
 	var s *bufio.Scanner
 	c.Initialize()
@@ -306,6 +315,9 @@ func (c *CommandLine) Initialize() {
 	c.Refresh()
 }
 
+// Refresh clears basic properties for each evaluation of lexicalScopes.
+// For bufio.Scanner, this methods clears properties related to every registered
+// recognized lexicalScopes at the head of Parse.
 func (c *CommandLine) Refresh() {
 	c.lexicalScope = []string{}
 	c.cmd = []*exec.Cmd{}
