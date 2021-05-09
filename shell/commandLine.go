@@ -173,6 +173,11 @@ func (c *CommandLine) isBlankLine() bool {
 			log.Println("blank line")
 		}
 		return true
+	} else if len(c.expression) == 0 {
+		if c.debug {
+			log.Println("blank line")
+		}
+		return true
 	} else if len(c.expression) != 0 && len(c.expression[0]) == 0 {
 		if c.debug {
 			log.Println("blank line")
@@ -180,19 +185,14 @@ func (c *CommandLine) isBlankLine() bool {
 		return true
 	}
 	return false
+
 }
 
-// Parse parses giosh command line and return output string
-func (c *CommandLine) Parse(s string) error {
+func (c *CommandLine) setStatement() error {
 	var (
-		cmdName  string
-		args     []string
-		copySrc  io.Reader
-		copyDest io.Writer
+		cmdName string
+		args    []string
 	)
-	c.Refresh()
-	c.lexicalScope = strings.Split(s, "|")
-
 	for i := range c.lexicalScope {
 		c.tmpIndex = i
 		if c.debug {
@@ -227,10 +227,17 @@ func (c *CommandLine) Parse(s string) error {
 
 		c.track(c.cmd[i].Start())
 	}
+	return nil
+}
 
+func (c *CommandLine) evaluateStatement(stmt string) error {
+	var (
+		copySrc  io.Reader
+		copyDest io.Writer
+	)
 	for i := range c.lexicalScope {
 		if i == 0 {
-			copySrc = bytes.NewBufferString(s)
+			copySrc = bytes.NewBufferString(stmt)
 		} else {
 			copySrc = c.pipe[i-1].stdout
 		}
@@ -245,6 +252,22 @@ func (c *CommandLine) Parse(s string) error {
 		_, err = io.Copy(copyDest, c.pipe[i].stdout)
 		c.track(err)
 	}
+	return nil
+}
+
+// Parse parses giosh command line and return output string
+func (c *CommandLine) Parse() (err error) {
+	c.Refresh()
+	c.lexicalScope = strings.Split(c.GetInput(), "|")
+
+	if err = c.setStatement(); err != nil {
+		return err
+	}
+	if c.isBlankLine() {
+		return c.TerminateLine()
+	} else if err = c.evaluateStatement(c.GetInput()); err != nil {
+		c.track(err)
+	}
 
 	for i := range c.cmd {
 		c.track(c.cmd[i].Wait())
@@ -255,9 +278,8 @@ func (c *CommandLine) Parse(s string) error {
 
 // SetInput sets raw input string for c.input.
 // (for reading scripts from arguments)
-func (c *CommandLine) SetInput(input string) error {
+func (c *CommandLine) SetInput(input string) {
 	c.input = input
-	return nil
 }
 
 // GetInput get raw input string from c.input.
@@ -271,17 +293,18 @@ func (c *CommandLine) GetInput() string {
 // If you simply run it without any additional reader/writer sets,
 // the vm starts with default I/O interface (bufio.Scanner and os.Stdout).
 func (c *CommandLine) Exec() error {
-	var s *bufio.Scanner
+	var scanner *bufio.Scanner
 	c.Initialize()
 	fmt.Printf(GetPsString())
 	c.stream.buf.writer = append(c.stream.buf.writer, bufio.NewWriter(os.Stdout))
-	if c.input == "" {
-		s = bufio.NewScanner(os.Stdin)
+	if c.GetInput() == "" {
+		scanner = bufio.NewScanner(os.Stdin)
 	} else {
-		s = bufio.NewScanner(bytes.NewBufferString(c.input))
+		scanner = bufio.NewScanner(bytes.NewBufferString(c.GetInput()))
 	}
-	for s.Scan() {
-		err := c.Parse(s.Text())
+	for scanner.Scan() {
+		c.SetInput(scanner.Text())
+		err := c.Parse()
 		if err != nil {
 			fmt.Print(err)
 		}
