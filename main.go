@@ -5,7 +5,6 @@ import (
 	"github.com/g1eng/giosh/shell"
 	"github.com/urfave/cli"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
@@ -24,16 +23,13 @@ func parserRun(cli *cli.Context) (err error) {
 		if b, err = ioutil.ReadFile(cli.Args().Get(0)); err != nil {
 			fmt.Print(err)
 			return err
-		} else if err = commandLine.SetInput(string(b)); err != nil {
-			fmt.Print(err)
-			return err
-		} else {
-			log.Printf("b: string: %s : hex : %x", b, b)
-			log.Printf("c.input: %s", commandLine.GetInput())
-			return commandLine.Exec()
 		}
+		commandLine.SetInput(string(b))
+		//log.Printf("b: string: %s : hex : %x", b, b)
+		//log.Printf("c.input: %s", commandLine.GetInput())
+		return commandLine.Exec()
 	} else {
-		_ = commandLine.SetInput("")
+		commandLine.SetInput("")
 		return commandLine.Exec()
 	}
 }
