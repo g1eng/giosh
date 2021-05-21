@@ -9,7 +9,7 @@ import (
 )
 
 func parserRun(cli *cli.Context) (err error) {
-	commandLine := shell.CommandLine{}
+	commandLine := shell.New()
 
 	if cli.Bool("debug") {
 		commandLine.SetDebug(true)
