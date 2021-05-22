@@ -9,6 +9,12 @@ import (
 	"strconv"
 )
 
+// GetInput get raw input string from c.input.
+// (just for temporary caching for file reading)
+func (c *CommandLine) GetInput() string {
+	return c.input
+}
+
 // GetPsString returns PS shell description for bufio.Writer
 func (c *CommandLine) GetPsString() string {
 	return os.Getenv("USER") + "@G[" + strconv.Itoa(c.lineno) + "]> "

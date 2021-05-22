@@ -2,9 +2,9 @@ package shell
 
 import "regexp"
 
-//setExpression sets shell expression which is separated with IFS.
+//parseExpression sets shell expression which is separated with IFS.
 //This function is applied to single lexicalScope
-func (c *CommandLine) setExpression(lex string) {
+func (c *CommandLine) parseExpression(lex string) {
 	expr := regexp.MustCompilePOSIX("[ \\t]").Split(lex, -1)
 	expr = trimExpression(expr) //trim line-head space characters
 	c.expression = append(c.expression, expr)

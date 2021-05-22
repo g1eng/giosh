@@ -1,4 +1,4 @@
-package shell
+package io
 
 import (
 	"bufio"
@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-type IOStream struct {
-	writer []io.Writer
-	reader []io.Reader
+type Stream struct {
+	Writer []io.Writer
+	Reader []io.Reader
 }
 
-type SystemIO struct {
+type Buffer struct {
 	writer bufio.Writer
 	reader bufio.Reader
 }
