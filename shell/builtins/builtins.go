@@ -1,16 +1,14 @@
-package shell
+package builtins
 
 import (
 	"fmt"
 )
 
+type builtinFunc func(args ...string) error
+
 func echo(desc string) error {
 	_, err := fmt.Printf("%s\n", desc)
 	return err
-}
-
-func test(expr string) error {
-	return nil
 }
 
 func printf(desc string) error {
