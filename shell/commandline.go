@@ -11,19 +11,27 @@ import (
 	"strings"
 )
 
+// CommandLine is the main struct for giosh shell instance.
+// This struct has any internal state of a shell such as
+// lexical scopes, expressions for the evaluation, pipes
+// which internal I/O are processed, etc.
 type CommandLine struct {
-	lexicalScope []string
-	expression   [][]string
-	cmd          []*exec.Cmd
-	pipe         []Pipe
-	stream       StreamIO
-	tmpIndex     int
-	error        []error
-	debug        bool
-	input        string
-	lineno       int
+	lexicalScope  []string
+	expression    [][]string
+	command       []*exec.Cmd
+	pipeSet       []Pipe
+	io            IOStream
+	exprIndex     int
+	error         []error
+	debug         bool
+	input         string
+	lineno        int
+	currentWriter io.Writer
 }
 
+// Pipe is input and output pipe for the shell.
+// This is used to store pipe objects derived from
+// methods on *exec.Cmd.
 type Pipe struct {
 	stdin  io.WriteCloser
 	stdout io.ReadCloser
@@ -32,26 +40,26 @@ type Pipe struct {
 // registerCommand sets exec.Command object for shell.CommandLine struct.
 func (c *CommandLine) registerCommand(cmdName string, args []string) {
 	var (
-		tmpIndex int
-		cmd      *exec.Cmd
-		stdin    io.WriteCloser
-		stdout   io.ReadCloser
-		err      error
+		exprIndex int
+		cmd       *exec.Cmd
+		stdin     io.WriteCloser
+		stdout    io.ReadCloser
+		err       error
 	)
-	tmpIndex = len(c.cmd)
+	exprIndex = len(c.command)
 	if args == nil || args[0] == "" {
 		cmd = exec.Command(cmdName)
-		c.cmd = append(c.cmd, cmd)
+		c.command = append(c.command, cmd)
 	} else {
 		cmd = exec.Command(cmdName, args...)
-		c.cmd = append(c.cmd, cmd)
+		c.command = append(c.command, cmd)
 	}
 	c.lineno++
-	stdin, err = c.cmd[tmpIndex].StdinPipe()
+	stdin, err = c.command[exprIndex].StdinPipe()
 	c.track(err)
-	stdout, err = c.cmd[tmpIndex].StdoutPipe()
+	stdout, err = c.command[exprIndex].StdoutPipe()
 	c.track(err)
-	c.pipe = append(c.pipe, Pipe{
+	c.pipeSet = append(c.pipeSet, Pipe{
 		stdin:  stdin,
 		stdout: stdout,
 	})
@@ -66,7 +74,6 @@ func (c *CommandLine) setStatement() error {
 		args    []string
 	)
 	for i := range c.lexicalScope {
-		c.tmpIndex = i
 		if c.debug {
 			log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
 		}
@@ -97,31 +104,31 @@ func (c *CommandLine) setStatement() error {
 			log.Printf("args %d: %v", i, args)
 		}
 
-		c.track(c.cmd[i].Start())
+		c.track(c.command[i].Start())
 	}
 	return nil
 }
 
+//evaluateStatement reads a statement from pipeline input.
+//This function is applied to each `statement`, which is
+//separated with `|`
 func (c *CommandLine) evaluateStatement(stmt string) error {
-	var (
-		copySrc  io.Reader
-		copyDest io.Writer
-	)
+	var copySrc io.Reader
 	for i := range c.lexicalScope {
 		if i == 0 {
 			copySrc = bytes.NewBufferString(stmt)
 		} else {
-			copySrc = c.pipe[i-1].stdout
+			copySrc = c.pipeSet[i-1].stdout
 		}
-		if i == len(c.cmd)-1 {
-			copyDest = os.Stdout
+		if i == len(c.command)-1 {
+			c.currentWriter = os.Stdout
 		} else {
-			copyDest = c.pipe[i+1].stdin
+			c.currentWriter = c.pipeSet[i+1].stdin
 		}
-		_, err := io.Copy(c.pipe[i].stdin, copySrc)
+		_, err := io.Copy(c.pipeSet[i].stdin, copySrc)
 		c.track(err)
-		c.track(c.pipe[i].stdin.Close())
-		_, err = io.Copy(copyDest, c.pipe[i].stdout)
+		c.track(c.pipeSet[i].stdin.Close())
+		_, err = io.Copy(c.currentWriter, c.pipeSet[i].stdout)
 		c.track(err)
 	}
 	return nil
@@ -139,20 +146,18 @@ func (c *CommandLine) GetInput() string {
 	return c.input
 }
 
-func (c *CommandLine) TerminateLine() (err error) {
+func (c *CommandLine) TerminateLine(withPsString ...bool) (err error) {
 	// for bufio.Writer, write PS string
 	err = c.DumpErrors()
 	if err != nil {
 		fmt.Println(err)
 	}
-	for i := range c.stream.buf.writer {
-		if _, err = c.stream.buf.writer[i].Write([]byte(c.GetPsString())); err != nil {
-			return err
-		} else if err = c.stream.buf.writer[i].Flush(); err != nil {
-			return err
-		}
+	if len(withPsString) != 0 && withPsString[0] == false {
+		return nil
+	} else {
+		_, _ = c.currentWriter.Write([]byte(c.GetPsString()))
+		return nil
 	}
-	return nil
 }
 
 // Refresh clears basic properties for each evaluation of lexicalScopes.
@@ -160,31 +165,37 @@ func (c *CommandLine) TerminateLine() (err error) {
 // recognized lexicalScopes at the head of Parse.
 func (c *CommandLine) Refresh() {
 	c.lexicalScope = []string{}
-	c.cmd = []*exec.Cmd{}
+	c.command = []*exec.Cmd{}
 	c.expression = [][]string{}
 	c.error = []error{}
-	c.pipe = []Pipe{}
-	c.tmpIndex = 0
+	c.pipeSet = []Pipe{}
+	c.exprIndex = 0
+}
+
+// setLexicalScope sets all lexical scope on the line terminated with EOF.
+// At now giosh does not have multi-line scope for the lexical parsing.
+//
+// Each lexical scope within a line, is just separated with "|"
+func (c *CommandLine) setLexicalScope() {
+	c.lexicalScope = strings.Split(c.GetInput(), "|")
 }
 
 // Parse parses giosh command line and return output string.
 // At now, any lexical scopes are separated with "|" and
-// any statements are separated with EOF.
+// any lines are separated with EOF. (multi-line is not allowed)
 func (c *CommandLine) Parse() (err error) {
 	c.Refresh()
-	c.lexicalScope = strings.Split(c.GetInput(), "|")
-
+	c.setLexicalScope()
 	if err = c.setStatement(); err != nil {
 		return err
 	}
 	if c.isBlankLine() {
-		return c.TerminateLine()
+		return c.TerminateLine(false)
 	} else if err = c.evaluateStatement(c.GetInput()); err != nil {
 		c.track(err)
 	}
-
-	for i := range c.cmd {
-		c.track(c.cmd[i].Wait())
+	for i := range c.command {
+		c.track(c.command[i].Wait())
 	}
 
 	return c.TerminateLine()
@@ -192,15 +203,14 @@ func (c *CommandLine) Parse() (err error) {
 
 // New generates a new shell instance with default parameters.
 func New() CommandLine {
-	giosh := CommandLine{}
-	giosh.lineno = 1
-	giosh.stream = StreamIO{
-		buf:  SystemIO{},
-		file: []*os.File{},
-		rest: Rest{},
+	newShell := CommandLine{}
+	newShell.lineno = 1
+	newShell.io = IOStream{
+		writer: []io.Writer{},
+		reader: []io.Reader{},
 	}
-	giosh.Refresh()
-	return giosh
+	newShell.Refresh()
+	return newShell
 }
 
 // Exec is the entry point for giosh shell interface.
@@ -209,8 +219,9 @@ func New() CommandLine {
 // the vm starts with default I/O interface (bufio.Scanner and os.Stdout).
 func (c *CommandLine) Exec() error {
 	var scanner *bufio.Scanner
+	c.currentWriter = os.Stdout
 	fmt.Printf(c.GetPsString())
-	c.stream.buf.writer = append(c.stream.buf.writer, bufio.NewWriter(os.Stdout))
+	c.io.writer = append(c.io.writer, bufio.NewWriter(os.Stdout))
 	if c.GetInput() == "" {
 		scanner = bufio.NewScanner(os.Stdin)
 	} else {

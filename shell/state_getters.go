@@ -14,31 +14,31 @@ func (c *CommandLine) GetPsString() string {
 	return os.Getenv("USER") + "@G[" + strconv.Itoa(c.lineno) + "]> "
 }
 
-// getCurrentCommand returns latest exec.Command registered in CommandLine.cmd
+// getCurrentCommand returns latest exec.Command registered in CommandLine.command
 func (c *CommandLine) getCurrentCommand() *exec.Cmd {
-	if len(c.cmd) == 0 {
-		c.track(errors.New("c.cmd is zero length"))
+	if len(c.command) == 0 {
+		c.track(errors.New("c.command is zero length"))
 		return nil
 	} else {
-		return c.cmd[len(c.cmd)-1]
+		return c.command[len(c.command)-1]
 	}
 }
 
 func (c *CommandLine) getCurrentStdout() io.ReadCloser {
-	if len(c.pipe) == 0 {
-		c.track(errors.New("c.pipe is zero length"))
+	if len(c.pipeSet) == 0 {
+		c.track(errors.New("c.pipeSet is zero length"))
 		return nil
 	} else {
-		return c.pipe[len(c.pipe)-1].stdout
+		return c.pipeSet[len(c.pipeSet)-1].stdout
 	}
 }
 
 // isPipeEnd detects whether the pipe is end or not and returns bool value
 func (c *CommandLine) isPipeEnd() bool {
-	if c.tmpIndex == len(c.lexicalScope)-1 && c.debug {
+	if c.exprIndex == len(c.lexicalScope)-1 && c.debug {
 		log.Println("pipe end")
 	}
-	return c.tmpIndex == len(c.lexicalScope)-1
+	return c.exprIndex == len(c.lexicalScope)-1
 }
 
 // isBlankLine detects whether the input line is filled with blank or spaces,

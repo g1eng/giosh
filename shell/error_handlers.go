@@ -1,6 +1,9 @@
 package shell
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // track is internal error recording function for CommandLine.
 // It records error given in argument into CommandLine.error if the argument is not nil
@@ -20,7 +23,7 @@ func (c *CommandLine) DumpErrors() (isNotNilArray error) {
 				isNotNilArray = c.error[i]
 			}
 			if c.debug {
-				fmt.Println(c.error[i])
+				_, _ = fmt.Fprintf(os.Stdout, "%v", c.error[i])
 			}
 		}
 	}

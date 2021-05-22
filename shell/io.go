@@ -2,23 +2,27 @@ package shell
 
 import (
 	"bufio"
+	"io"
 	"net/http"
-	"os"
 )
 
-type StreamIO struct {
-	buf  SystemIO
-	file []*os.File
-	rest Rest
+type IOStream struct {
+	writer []io.Writer
+	reader []io.Reader
 }
 
 type SystemIO struct {
-	writer []*bufio.Writer
-	reader []*bufio.Reader
+	writer bufio.Writer
+	reader bufio.Reader
 }
 
-type Rest struct {
-	writer []*http.ResponseWriter
-	reader []*http.HandlerFunc
-	server []*http.Server
+type HttpServer struct {
+	writer http.ResponseWriter
+	reader http.HandlerFunc
+	server http.Server
+}
+type HttpClient struct {
+	writer io.Writer
+	reader io.Reader
+	client http.Client
 }
