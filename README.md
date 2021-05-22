@@ -8,9 +8,14 @@ giosh is not:
 * a shell language with multi-line lexical scope
 * a virtual machine with a new (environmental) variable declaration mechanism
 
+# Supported features
+
+* Command invokation with PATH resolving
+* pipe
+
 # Usage
 
-1. Simply invoke it. You can use giosh with interactive mode.
+1. Simply invoke it. You can use giosh with interactive mode. 
 
 ```shell
 $ giosh
@@ -35,11 +40,21 @@ $ awesome_script | awesome_command | giosh
 
 # Limitation
 
-At now, giosh is released under following limitations:
+At now, giosh is released under limitations (really so limited in the function).
 
-* comment line is not supported
-* escape character \\ is not supported
-* arrow keys and command history are not supported
+Following mechanisms are not supported:
+
+
+* comment line
+* escape character \\ 
+* arrow keys and command history 
+* redirection with file descriptor
+* hear strings or hear document
+* variable declaration
+* variable reference (env value is not directly available)
+* variable expansion and command replacement
+* background jobs (&)
+* builtin commands
 
 # Authors
 
