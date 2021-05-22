@@ -36,11 +36,12 @@ $ awesome_script | awesome_command | giosh
 
 At now, giosh is released under following limitations:
 
-* comment line not supported
-* escape character \\ not supported
-* arrow keys and command history not supported
+* comment line is not supported
+* escape character \\ is not supported
+* arrow keys and command history are not supported
 
 # Authors
 
 Suzume Nomura @g1eng
+
 Okadarien Saru -
