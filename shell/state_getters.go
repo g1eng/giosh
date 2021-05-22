@@ -41,7 +41,7 @@ func (c *CommandLine) getCurrentStdout() io.ReadCloser {
 
 // isPipeEnd detects whether the pipe is end or not and returns bool value
 func (c *CommandLine) isPipeEnd() bool {
-	if c.exprIndex == len(c.lexicalScope)-1 && c.debug {
+	if c.exprIndex == len(c.lexicalScope)-1 && c.Debug {
 		log.Println("pipe end")
 	}
 	return c.exprIndex == len(c.lexicalScope)-1
@@ -51,17 +51,17 @@ func (c *CommandLine) isPipeEnd() bool {
 // and returns bool value
 func (c *CommandLine) isBlankLine() bool {
 	if len(c.lexicalScope) == 0 {
-		if c.debug {
+		if c.Debug {
 			log.Println("blank line")
 		}
 		return true
 	} else if len(c.expression) == 0 {
-		if c.debug {
+		if c.Debug {
 			log.Println("blank line")
 		}
 		return true
 	} else if len(c.expression) != 0 && len(c.expression[0]) == 0 {
-		if c.debug {
+		if c.Debug {
 			log.Println("blank line")
 		}
 		return true

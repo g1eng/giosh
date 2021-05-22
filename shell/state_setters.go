@@ -1,8 +1,8 @@
 package shell
 
-//SetDebug is write-only setter method for CommandLine.debug flag.
+//SetDebug is write-only setter method for CommandLine.Debug flag.
 func (c *CommandLine) SetDebug(flag bool) {
-	c.debug = flag
+	c.Debug = flag
 }
 
 // SetInput sets raw input string for c.input.

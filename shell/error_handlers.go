@@ -22,7 +22,7 @@ func (c *CommandLine) DumpErrors() (isNotNilArray error) {
 			if isNotNilArray == nil {
 				isNotNilArray = c.error[i]
 			}
-			if c.debug {
+			if c.Debug {
 				_, _ = fmt.Fprintf(os.Stderr, "%v", c.error[i])
 			}
 		}

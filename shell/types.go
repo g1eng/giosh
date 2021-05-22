@@ -18,7 +18,7 @@ type CommandLine struct {
 	io            sio.Stream
 	exprIndex     int
 	error         []error
-	debug         bool
+	Debug         bool
 	input         string
 	lineno        int
 	currentWriter io.Writer
