@@ -1,6 +1,7 @@
 # About
 
 giosh (generic IO shell) is a multipurpose command line shell written in Go.
+
 giosh is not:
 
 * a POSIX compliant shell
