@@ -51,19 +51,10 @@ func (c *CommandLine) isPipeEnd() bool {
 // and returns bool value
 func (c *CommandLine) isBlankLine() bool {
 	if len(c.lexicalScope) == 0 {
-		if c.Debug {
-			log.Println("blank line")
-		}
 		return true
 	} else if len(c.expression) == 0 {
-		if c.Debug {
-			log.Println("blank line")
-		}
 		return true
 	} else if len(c.expression) != 0 && len(c.expression[0]) == 0 {
-		if c.Debug {
-			log.Println("blank line")
-		}
 		return true
 	}
 	return false

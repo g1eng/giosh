@@ -11,9 +11,10 @@ func (c *CommandLine) Parse() (err error) {
 	}
 	if c.isBlankLine() {
 		return c.TerminateLine(false)
-	} else if err = c.evaluateStatement(c.GetInput()); err != nil {
-		c.track(err)
+	} else {
+		c.evaluateStatement(c.GetInput())
 	}
+
 	for i := range c.command {
 		c.track(c.command[i].Wait())
 	}

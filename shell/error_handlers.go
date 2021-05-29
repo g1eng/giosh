@@ -17,13 +17,13 @@ func (c *CommandLine) track(e error) {
 // It scans any error object in CommandLine.error array and returns bool if it contains not a nil value
 func (c *CommandLine) DumpErrors() (isNotNilArray error) {
 	isNotNilArray = nil
-	for i := range c.error {
-		if c.error[i] != nil {
+	for _, e := range c.error {
+		if e != nil {
 			if isNotNilArray == nil {
-				isNotNilArray = c.error[i]
+				isNotNilArray = e
 			}
 			if c.Debug {
-				_, _ = fmt.Fprintf(os.Stderr, "%v", c.error[i])
+				_, _ = fmt.Fprintf(os.Stderr, "%v", e)
 			}
 		}
 	}
