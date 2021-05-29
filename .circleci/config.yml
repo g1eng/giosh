@@ -22,9 +22,9 @@ jobs:
           command: |
             mkdir -p /tmp/test-reports
             go test -race -coverprofile=coverage.txt -covermode=atomic ./builtins/ ./shell/
-      - store_test_results:
-          path: /tmp/test-reports
       - run:
           name: Upload coverage report to codecov
           command: |
-            curl -s https://codecov.io/bash
+            curl -s <(https://codecov.io/bash)
+      - store_test_results:
+          path: /tmp/test-reports
