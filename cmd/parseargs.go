@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/g1eng/giosh/shell"
-	"github.com/urfave/cli"
+	cli "github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
 )
