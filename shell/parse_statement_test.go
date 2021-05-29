@@ -22,7 +22,10 @@ func (s *CommandLine) TestCommandLine_ParseStatement(c *C) {
 
 func (s *CommandLine) TestParseStatementWithBlankLine(c *C) {
 	sh := New()
-	sh.lexicalScope = []string{}
+	sh.lexicalScope = []string{"", "ls -l"}
+	sh.expression = [][]string{}
+	sh.expression = append(s.expression, []string{})
+	sh.expression = append(s.expression, []string{"ls", "-l"})
 	c.Check(sh.parseStatement(), IsNil)
 }
 
@@ -30,4 +33,11 @@ func (s *CommandLine) TestParseStatementWithBlankLine2(c *C) {
 	sh := New()
 	sh.lexicalScope = []string{"\n"}
 	c.Check(sh.parseStatement(), IsNil)
+}
+
+func (s *CommandLine) TestEvaluateStatement(c *C) {
+	sh := New()
+	sh.lexicalScope = []string{"ls -l", "grep m"}
+	_ = sh.parseStatement()
+	c.Check(sh.evaluateStatement(""), IsNil)
 }
