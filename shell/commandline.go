@@ -11,12 +11,13 @@ func (c *CommandLine) TerminateLine(withPsString ...bool) (err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	if len(withPsString) != 0 && withPsString[0] == false {
-		return nil
-	} else {
-		_, _ = c.currentWriter.Write([]byte(c.GetPsString()))
-		return nil
+	if len(withPsString) != 0 {
+		if withPsString[0] == false {
+			return nil
+		}
 	}
+	_, _ = c.currentWriter.Write([]byte(c.GetPsString()))
+	return nil
 }
 
 // Refresh clears basic properties for each evaluation of lexicalScopes.

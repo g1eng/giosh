@@ -19,3 +19,11 @@ func (s *CommandLine) TestCommandLine_ParseStatement(c *C) {
 		c.Fatal("second option is -n")
 	}
 }
+
+func (s *CommandLine) TestCommandLine_ParseStatementWithBlankLine(c *C) {
+	sh := New()
+	sh.lexicalScope = []string{}
+	if err := sh.parseStatement(); err != nil {
+		c.Fatal(err)
+	}
+}

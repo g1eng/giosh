@@ -41,5 +41,6 @@ func New() CommandLine {
 		Reader: []io.Reader{},
 	}
 	newShell.Refresh()
+	newShell.error = []error{nil}
 	return newShell
 }

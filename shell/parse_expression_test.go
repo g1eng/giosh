@@ -23,3 +23,14 @@ func (s *CommandLine) TestCommandLine_ParseExpression(c *C) {
 		c.Fail()
 	}
 }
+
+func (s *CommandLine) TestTrimExpressionWithBlankSlice(c *C) {
+	out := trimExpression([]string{})
+	c.Check(len(out), Equals, 1)
+}
+
+func (s *CommandLine) TestCommandLine_TrimExpressionWithBlankPadding(c *C) {
+	ex := []string{"\t\t", "  ", "ls", "  ", "-l"}
+	out := trimExpression(ex)
+	c.Check(len(out), Equals, 2)
+}
