@@ -19,9 +19,12 @@ func (s *TestSuite) TestFailsWithUnknownOptionWithArgument(c *C) {
 	c.Check(BuiltinTest("-c", "hoge"), NotNil)
 }
 
-//passed for valid option with an argument
-func (s *TestSuite) TestPassedForValidOptionWithAnArgument(c *C) {
-	c.Check(BuiltinTest("-d", "/dev"), IsNil)
+//test exits for invalid options with three or more arguments
+func (s *TestSuite) TestFailsWithNonOptionThreeArguments(c *C) {
+	c.Check(BuiltinTest("a", "b", "c"), NotNil)
+}
+func (s *TestSuite) TestFailsWithNonOptionMoreThanThreeArguments(c *C) {
+	c.Check(BuiltinTest("a", "b", "c", "1", "2"), NotNil)
 }
 
 //exits with error on single =
@@ -54,14 +57,24 @@ func (s *TestSuite) TestIsNotEqual(c *C) {
 	c.Check(BuiltinTest("asa", "=", "ase"), NotNil)
 }
 
-// < operand is for mathematical
+// < operand for non-mathematical
 func (s *TestSuite) TestFailsForNonMathematicalGt(c *C) {
 	c.Check(BuiltinTest("15", ">", "junior"), NotNil)
 }
 
-// > operand is for mathematical
+// <= operand
+func (s *TestSuite) TestFailsForNonMathematicalGe(c *C) {
+	c.Check(BuiltinTest("15", ">=", "junior"), NotNil)
+}
+
+// > operand for non-mathematical
 func (s *TestSuite) TestFailsForNonMathematicalLt(c *C) {
 	c.Check(BuiltinTest("65", "<", "senior"), NotNil)
+}
+
+// >= operand for non-mathematical
+func (s *TestSuite) TestFailsForNonMathematicalLe(c *C) {
+	c.Check(BuiltinTest("65", "<=", "senior"), NotNil)
 }
 
 // valid greater than
@@ -241,6 +254,9 @@ func (s *TestSuite) TestCheckNonZeroForZero(c *C) {
 func (s *TestSuite) TestNonZero(c *C) {
 	c.Check(BuiltinTest("-n", "1"), IsNil)
 }
+func (s *TestSuite) TestNonZeroFailure(c *C) {
+	c.Check(BuiltinTest("-n", ""), NotNil)
+}
 
 // -z option
 
@@ -254,6 +270,9 @@ func (s *TestSuite) TestCheckZeroForNonZero(c *C) {
 
 func (s *TestSuite) TestZero(c *C) {
 	c.Check(BuiltinTest("-z", ""), IsNil)
+}
+func (s *TestSuite) TestZeroFailure(c *C) {
+	c.Check(BuiltinTest("-z", "ok"), NotNil)
 }
 
 // -h option

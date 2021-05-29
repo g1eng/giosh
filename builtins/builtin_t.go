@@ -1,7 +1,6 @@
 package builtins
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 //BuiltinTest is a `test` builtin implementation for giosh.
 func BuiltinTest(expr ...string) error {
 	if len(expr) < 1 {
-		return errors.New("operator missing")
+		return fmt.Errorf("operator missing")
 	} else if len(expr) == 1 {
 		switch expr[0] {
 		default:
@@ -27,31 +26,14 @@ func BuiltinTest(expr ...string) error {
 			return CheckSymbolicLink(target)
 		case "-z":
 			if !CheckZero(target) {
-				return errors.New("")
+				return fmt.Errorf("")
 			}
 		case "-n":
 			if !CheckNonZero(target) {
-				return errors.New("")
+				return fmt.Errorf("")
 			}
-		case "=":
-		case "<":
-		case "<=":
-		case ">":
-		case ">=":
-			return fmt.Errorf("operand missing: %s", expr[1])
 		default:
 			return fmt.Errorf("unknown option: %s", expr[0])
-		}
-	} else if len(expr) == 2 {
-		switch expr[1] {
-		case "=":
-		case "<":
-		case "<=":
-		case ">":
-		case ">=":
-			return errors.New("right hand operand missing: " + expr[1])
-		default:
-			return errors.New("unknown syntax " + expr[0] + " " + expr[1])
 		}
 	} else if len(expr) == 3 {
 		op1, op2 := expr[0], expr[2]
@@ -87,13 +69,13 @@ func BuiltinTest(expr ...string) error {
 				res = CheckIsGreaterEqual(op1, op2)
 			}
 		default:
-			return errors.New("unknown operator" + expr[1])
+			return fmt.Errorf("unknown operator %s", expr[1])
 		}
 		if res != true {
-			return errors.New("")
+			return fmt.Errorf("")
 		}
 	} else {
-		return errors.New("too long arguments specified for test")
+		return fmt.Errorf("too long arguments specified for test")
 	}
 	return nil
 }
