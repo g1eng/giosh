@@ -35,9 +35,9 @@ func (s *CommandLine) TestParseStatementWithBlankLine2(c *C) {
 	c.Check(sh.parseStatement(), IsNil)
 }
 
-func (s *CommandLine) TestEvaluateStatement(c *C) {
+func (s *CommandLine) TestEvaluateStatement(_ *C) {
 	sh := New()
 	sh.lexicalScope = []string{"ls -l", "grep m"}
 	_ = sh.parseStatement()
-	c.Check(sh.evaluateStatement(""), IsNil)
+	sh.evaluateStatement("")
 }

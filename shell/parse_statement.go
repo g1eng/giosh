@@ -46,7 +46,7 @@ func (c *CommandLine) parseStatement() error {
 //evaluateStatement reads a statement from pipeline input.
 //This function is applied to each `statement`, which is
 //separated with `|`
-func (c *CommandLine) evaluateStatement(stmt string) error {
+func (c *CommandLine) evaluateStatement(stmt string) {
 	var copySrc io.Reader
 	for i := range c.lexicalScope {
 		if i == 0 {
@@ -65,5 +65,4 @@ func (c *CommandLine) evaluateStatement(stmt string) error {
 		_, err = io.Copy(c.currentWriter, c.pipeSet[i].stdout)
 		c.track(err)
 	}
-	return nil
 }
