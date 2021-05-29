@@ -25,6 +25,6 @@ jobs:
       - run:
           name: Upload coverage report to codecov
           command: |
-            curl -s <(https://codecov.io/bash)
+            bash <(curl -s https://codecov.io/bash)
       - store_test_results:
           path: /tmp/test-reports
