@@ -18,6 +18,9 @@ jobs:
           paths:
             - "/go/pkg/mod"
       - run:
+          name: Build artifact
+          command: go build
+      - run:
           name: Run tests
           command: |
             mkdir -p /tmp/test-reports
