@@ -1,6 +1,6 @@
 # About
 
-[![Circle CI](https://circleci.com/gh/g1eng/giosh.svg?style=svg)](https://app.circleci.com/pipelines/github/g1eng/giosh)
+[![Circle CI](https://circleci.com/gh/g1eng/giosh.svg?style=shield)](https://app.circleci.com/pipelines/github/g1eng/giosh)
 [![codecov](https://codecov.io/gh/g1eng/giosh/branch/master/graph/badge.svg?token=2F9PE0MC9B)](https://codecov.io/gh/g1eng/giosh)
 
 giosh (generic IO shell) is a multipurpose command line shell written in Go.
@@ -61,6 +61,6 @@ Following mechanisms are not supported:
 
 # Authors
 
-Suzume Nomura @g1eng
+Suzume Nomura [@g1eng](https://github.com/g1eng)
 
 Okadarien Saru -
