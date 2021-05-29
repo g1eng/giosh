@@ -20,10 +20,14 @@ func (s *CommandLine) TestCommandLine_ParseStatement(c *C) {
 	}
 }
 
-func (s *CommandLine) TestCommandLine_ParseStatementWithBlankLine(c *C) {
+func (s *CommandLine) TestParseStatementWithBlankLine(c *C) {
 	sh := New()
 	sh.lexicalScope = []string{}
-	if err := sh.parseStatement(); err != nil {
-		c.Fatal(err)
-	}
+	c.Check(sh.parseStatement(), IsNil)
+}
+
+func (s *CommandLine) TestParseStatementWithBlankLine2(c *C) {
+	sh := New()
+	sh.lexicalScope = []string{"\n"}
+	c.Check(sh.parseStatement(), IsNil)
 }
