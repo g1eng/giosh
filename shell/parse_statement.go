@@ -3,6 +3,7 @@ package shell
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 )
 
@@ -15,7 +16,6 @@ func (c *CommandLine) parseStatement() error {
 		args    []string
 	)
 	for i := range c.lexicalScope {
-		//log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
 
 		c.parseExpression(c.lexicalScope[i])
 
@@ -30,13 +30,16 @@ func (c *CommandLine) parseStatement() error {
 
 		c.parseCommand(cmdName, args)
 
-		// debugger
-		//log.Printf("expression[%d]: %v", i, c.expression[i])
-		//for j := range c.expression[i] {
-		//	log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
-		//}
-		//log.Printf("cmdName %d: %s", i, cmdName)
-		//log.Printf("args %d: %v", i, args)
+		// debug messages
+		if c.Debug {
+			log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
+			log.Printf("expression[%d]: %v", i, c.expression[i])
+			for j := range c.expression[i] {
+				log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
+			}
+			log.Printf("cmdName %d: %s", i, cmdName)
+			log.Printf("args %d: %v", i, args)
+		}
 
 		c.track(c.command[i].Start())
 	}
