@@ -10,7 +10,7 @@ func (c *CommandLine) Parse() (err error) {
 		return err
 	}
 	if c.isBlankLine() {
-		return c.TerminateLine(false)
+		return c.TerminateLine()
 	} else {
 		c.evaluateStatement(c.GetInput())
 	}

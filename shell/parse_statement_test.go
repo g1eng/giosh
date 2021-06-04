@@ -58,3 +58,11 @@ func (s *CommandLine) TestEvaluateInvalidCommand(c *C) {
 	sh.evaluateStatement("")
 	c.Check(sh.DumpErrors(), NotNil)
 }
+
+//fix #1 : unterminated pipeline makes error for parseStatement
+func (s *CommandLine) TestPipeEndError(c *C) {
+	sh := New()
+	sh.lexicalScope = []string{"ls -l", ""}
+	err := sh.parseStatement()
+	c.Check(err, NotNil)
+}

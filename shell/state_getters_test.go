@@ -26,3 +26,18 @@ func (s *CommandLine) TestGetCurrentCommandNil(c *C) {
 	s.command = []*exec.Cmd{}
 	c.Check(s.getCurrentCommand(), IsNil)
 }
+
+func (s *CommandLine) TestBlankLine(c *C) {
+	s.lexicalScope = []string{"ls"}
+	s.expression = [][]string{{"ls"}}
+	c.Log("ls")
+	c.Check(s.isBlankLine(), Equals, false)
+	c.Log("[nospace]")
+	s.lexicalScope = []string{}
+	s.expression = [][]string{}
+	c.Check(s.isBlankLine(), Equals, true)
+	c.Log("[spaceX2]")
+	s.lexicalScope = []string{"  "}
+	s.expression = [][]string{{}}
+	c.Check(s.isBlankLine(), Equals, true)
+}
