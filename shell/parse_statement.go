@@ -2,6 +2,7 @@ package shell
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 )
@@ -15,9 +16,13 @@ func (c *CommandLine) parseStatement() error {
 		args    []string
 	)
 	for i := range c.lexicalScope {
-		//log.Printf("lexicalScope[%d]: %v", i, c.lexicalScope[i])
 
 		c.parseExpression(c.lexicalScope[i])
+		if c.isBlankLine() {
+			return nil
+		} else if len(c.expression[i]) == 0 {
+			return fmt.Errorf("pipe error: pipeline #%d is nil\n", i+1)
+		}
 
 		// command with no arg
 		if len(c.expression[i][0]) == 1 {
@@ -30,13 +35,9 @@ func (c *CommandLine) parseStatement() error {
 
 		c.parseCommand(cmdName, args)
 
-		// debugger
-		//log.Printf("expression[%d]: %v", i, c.expression[i])
-		//for j := range c.expression[i] {
-		//	log.Printf("expression[%d][%d]: %v", i, j, c.expression[i][j])
-		//}
-		//log.Printf("cmdName %d: %s", i, cmdName)
-		//log.Printf("args %d: %v", i, args)
+		if c.Debug {
+			c.dumpParserObject(i)
+		}
 
 		c.track(c.command[i].Start())
 	}
@@ -49,12 +50,13 @@ func (c *CommandLine) parseStatement() error {
 func (c *CommandLine) evaluateStatement(stmt string) {
 	var copySrc io.Reader
 	for i := range c.lexicalScope {
+		c.exprIndex = i
 		if i == 0 {
 			copySrc = bytes.NewBufferString(stmt)
 		} else {
 			copySrc = c.pipeSet[i-1].stdout
 		}
-		if i == len(c.command)-1 {
+		if c.isPipeEnd() {
 			c.currentWriter = os.Stdout
 		} else {
 			c.currentWriter = c.pipeSet[i+1].stdin

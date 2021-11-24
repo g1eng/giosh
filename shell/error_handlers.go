@@ -23,7 +23,7 @@ func (c *CommandLine) DumpErrors() (isNotNilArray error) {
 				isNotNilArray = e
 			}
 			if c.Debug {
-				_, _ = fmt.Fprintf(os.Stderr, "%v", e)
+				_, _ = fmt.Fprintf(os.Stderr, "%v\n", e)
 			}
 		}
 	}

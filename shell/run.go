@@ -26,6 +26,7 @@ func (c *CommandLine) Run() error {
 		err := c.Parse()
 		if err != nil {
 			fmt.Print(err)
+			_ = c.TerminateLine()
 		}
 	}
 
